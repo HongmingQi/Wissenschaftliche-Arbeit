@@ -1,0 +1,192 @@
+###############################################################################
+###																			###
+###							 R fuer Data Scientists							###
+###																			###
+###							Musterloesung zu Blatt 9 						###
+###																			###
+###############################################################################
+
+###############################################################################
+###						 Aufgabe 1 (De Mere-Paradoxon)						###
+
+## demere - simuliert das De Mere-Paradoxon
+## Eingabe:
+## n - Anzahl Wuerfelwuerfe
+## N - Anzahl Durchlaufe
+## Ausgabe:
+## - simulierte Wahrscheinlichkeiten
+demere <- function(n, N){
+	## Variante 1:
+	Spiel1 <- mean(replicate(N, any(sample(6, n, replace = TRUE) == 6)))
+
+	## Variante 2:
+	Spiel2 <- mean(replicate(N, any(sample(6, 6 * n, replace = TRUE) == 6 &
+									sample(6, 6 * n, replace = TRUE) == 6)))
+
+	## Output: Vektor mit simulierten Wahrscheinlichkeiten
+	c("P(mind. eine Sechs)" = Spiel1, "P(mind. eine Doppelsechs)" = Spiel2)
+}
+
+## Bestimme die Wahrscheinlichkeiten fuer n = 4 Wuerfe und N = 10000 Durchlaeufen
+set.seed(1234)
+demere(4, 10000)
+##	P(mind. eine Sechs) P(mind. eine Doppelsechs) 
+##				 0.5128                    0.4878
+
+
+###############################################################################
+###								Aufgabe 2 (S3)								###
+
+## a) Klausureinsichten.RData laden und mit Objekten vertraut machen
+
+## i) Wie viele Objekte enthaelt Klausureinsichten.RData und wie heissen diese
+load("Klausureinsichten.RData", verbose = TRUE)
+## -> Die Datei Klausureinsichten.RData enthaelt drei Objekte names
+##	  RfuerDS, HoeMaI und StatistikI.
+
+## ii) Wie kann die Klasse ermittelt werden?
+class(RfuerDS); class(HoeMaI); class(StatistikI)
+## -> Alle drei Objekte besitzen die Klasse 'Klausureinsicht'
+
+## iii) Betrachte die Struktur eines der Objektes
+str(RfuerDS)
+## -> Die Objekte besitzen eine Listenstruktur mit je zehn Listenelementen
+
+## iv) Was passiert bei der Eingabe eines Objektes in die Konsole?
+RfuerDS
+## -> Man sieht eine ziemlich unuebersichtliche Liste
+
+## v) Wie koennen alle Methoden fuer diese S3 Klasse aufgelistet werden?
+methods(class = "Klausureinsicht")
+## -> Es wurden keine Methoden fuer die S3-Klasse 'Klausureinsicht' gefunden
+
+## vi) Welche Attribute besitzt ein Objekt aus der hier betrachteten S3 Klasse?
+attributes(RfuerDS); attributes(HoeMaI); attributes(StatistikI)
+## -> Die Objekte der Klasse 'Klausureinsicht' enthalten die Attribute 'names'
+##	  und 'class'.
+
+## b) Schreibe eine print-Methode fuer die S3 Klasse 'Klausureinsicht'
+print.Klausureinsicht <- function(x, ...) {
+	cat("Klausureinsicht: ")
+	cat(x$Veranstaltung, "\n\n")
+
+	cat("Gesamtanzahl der Studierenden:              ")
+	cat(x$Gesamtanzahl, "\n")
+	cat("Davon wartende Studierende:                 ")
+	cat(x$Wartende, "\n")
+	cat("Dauer der Klausureinsicht in Minuten:       ")
+	cat(x$Dauer, "\n")
+	cat("Anzahl Lehrender:                           ")
+	cat(x$Anzahl_Lehrende, "\n")
+
+	cat("Mittlere Wartezeit in Minuten:              ")
+	cat(round(mean(x$Wartezeit), 2), "\n")
+	cat("Maximale Wartezeit:                         ")
+	cat(round(max(x$Wartezeit), 2), "\n")
+
+	cat("Mittlere Ankunftszeit:                      ")
+	cat(round(mean(x$Ankunftszeit), 2), "\n")
+	cat("Mittlere Ankunftszeit in erster Stunde:     ")	
+	cat(round(mean(x$Ankunftszeit[x$Ankunftszeit <= 60]), 2), "\n")
+	cat("Mittlere Ankunftszeit ab erster Stunde:     ")
+	cat(round(mean(x$Ankunftszeit[x$Ankunftszeit > 60]), 2), "\n")
+
+	invisible(x)
+}
+
+## Aufruf der print.Klausureinsicht-Methode:
+RfuerDS
+HoeMaI	
+StatistikI
+## bzw.
+print(RfuerDS)
+print(HoeMaI)
+print(StatistikI)
+
+
+## c) Schreibe eine summary-Methode fuer die S3 Klasse 'Klausureinsicht'
+summary.Klausureinsicht <- function(x, ...) {
+	## Tabellarische Zusammenfassung fuer Wartezeit 等待时间的表格式总结
+	WartezeitTab <- table(cut(x$Wartezeit, breaks = seq(0, max(x$Wartezeit) + 10,
+	                        by = 10), right = TRUE, include.lowest = TRUE))
+	## Tabellarische Zusammenfassung fuer Ankunftszeit 抵达时间的表格式摘要		
+	AnkunftTab <- table(cut(x$Ankunftszeit, breaks = seq(0, max(x$Ankunftszeit) 
+	                                                     + 10, by = 10), 
+                          right = TRUE, include.lowest = TRUE))
+	## 5-Werte-Zusammenfassung fuer Wartezeiten 等待时间的5值总结
+	WartezeitSummary <- quantile(x$Wartezeit, probs = c(0, 0.25, 0.5, 0.75, 1))
+	## 5-Werte-Zusammenfassung fuer Ankunftszeiten
+	AnkunftSummary <- quantile(x$Ankunftszeit, probs = c(0, 0.25, 0.5, 0.75, 1))
+
+	## Liste mit Ergebnissen fuer Output  带有输出结果的列表
+	res <- list(# Ergebnisse der print-Methode 打印法的结果
+				Veranstaltung = x$Veranstaltung,
+				Gesamtanzahl = x$Gesamtanzahl,
+				Wartende = x$Wartende,
+				Dauer = x$Dauer,
+				Anzahl_Lehrende = x$Anzahl_Lehrende,
+				WarteMean = round(mean(x$Wartezeit), 2),
+				WarteMax = round(max(x$Wartezeit), 2),
+				AnkunftMean = round(mean(x$Ankunftszeit), 2),
+				AnkunftMean1 = round(mean(x$Ankunftszeit[x$Ankunftszeit <= 60]), 2),
+				AnkunftMean2 = round(mean(x$Ankunftszeit[x$Ankunftszeit > 60]), 2),
+				# Zusaetzliche Infos
+				WartezeitTab = WartezeitTab,
+				AnkunftTab = AnkunftTab,
+				WartezeitSummary = WartezeitSummary,
+				AnkunftSummary = AnkunftSummary)
+	class(res) <- "summary_Klausureinsicht"
+	return(res)
+}
+
+## d) Schreibe eine print.summary-Methode fuer die S3 Klasse 
+     #'summary_Klausureinsicht'
+print.summary_Klausureinsicht <- function(x, ...) {
+	cat("Klausureinsicht: ")
+	cat(x$Veranstaltung, "\n\n")
+
+	cat("Gesamtanzahl der Studierenden:              ")
+	cat(x$Gesamtanzahl, "\n")
+	cat("Davon wartende Studierende:                 ")
+	cat(x$Wartende, "\n")
+	cat("Dauer der Klausureinsicht in Minuten:       ")
+	cat(x$Dauer, "\n")
+	cat("Anzahl Lehrender:                           ")
+	cat(x$Anzahl_Lehrende, "\n")
+
+	cat("Mittlere Wartezeit in Minuten:              ")
+	cat(x$WarteMean, "\n")
+	cat("Maximale Wartezeit:                         ")
+	cat(x$WarteMax, "\n")
+
+	cat("Mittlere Ankunftszeit:                      ")
+	cat(x$AnkunftMean, "\n")
+	cat("Mittlere Ankunftszeit in erster Stunde:     ")
+	cat(x$AnkunftMean1, "\n")
+	cat("Mittlere Ankunftszeit ab erster Stunde:     ")
+	cat(x$AnkunftMean2, "\n")
+
+	cat("\nTabellarische Übersicht der Wartezeiten:")
+	print(x$WartezeitTab, ...)
+	cat("\n5-Werte-Zusammenfassung der Wartezeiten:\n")
+	print(x$WartezeitSummary, ...)
+
+	cat("\nTabellarische Übersicht der Ankunftszeiten:")
+	print(x$AnkunftTab, ...)
+	cat("\n5-Werte-Zusammenfassung der Ankunftszeiten:\n")
+	print(x$AnkunftSummary, ...)
+
+	invisible(x)
+}
+
+## Aufruf der print.summary_Klausureinsicht-Methode:
+summary(RfuerDS)
+summary(HoeMaI)
+summary(StatistikI)
+
+## Jetzt werden die selbst angelegten Methoden fuer die S3 Klassen
+## 'Klausureinsicht' auch gefunden
+methods(class = "Klausureinsicht")
+## [1] print   summary
+methods(class = "summary_Klausureinsicht")
+## [1] print
